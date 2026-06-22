@@ -12,7 +12,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     name:'⚽ 投注追蹤',
     short_name:'投注追蹤',
     description:'世界盃投注追蹤計算機',
-    start_url:'.',
+    start_url:'./index.html',
     display:'standalone',
     background_color:'#0f172a',
     theme_color:'#0f172a',
@@ -248,21 +248,24 @@ function updateAuthUI(){
   const loginBtn = $('#loginBtn');
   const userInfo = $('#userInfo');
   const shareBtn = $('#shareBtn');
+  const syncStatus = $('syncStatus');
+  /* DOM 尚未就緒時靜默返回 */
+  if(!loginBtn || !userInfo) return;
   if(state.user){
-    loginBtn.style.display = 'none';
-    userInfo.style.display = 'flex';
-    $('#userAvatar').src = state.user.user_metadata?.avatar_url || '';
-    $('#userEmail').textContent = state.user.email || '';
-    shareBtn.style.display = '';
-    $('syncStatus').textContent = '已同步雲端';
+    try{ loginBtn.style.display = 'none'; }catch{}
+    try{ userInfo.style.display = 'flex'; }catch{}
+    const av = $('#userAvatar'); if(av) av.src = state.user.user_metadata?.avatar_url || '';
+    const em = $('#userEmail'); if(em) em.textContent = state.user.email || '';
+    if(shareBtn) shareBtn.style.display = '';
+    if(syncStatus) syncStatus.textContent = '已同步雲端';
     if(state.records.length > 0 && !localStorage.getItem('migrated_'+state.user.id)){
       promptMigration();
     }
   } else {
-    loginBtn.style.display = '';
-    userInfo.style.display = 'none';
-    shareBtn.style.display = 'none';
-    $('syncStatus').textContent = '本地模式';
+    if(loginBtn) loginBtn.style.display = '';
+    if(userInfo) userInfo.style.display = 'none';
+    if(shareBtn) shareBtn.style.display = 'none';
+    if(syncStatus) syncStatus.textContent = '本地模式';
   }
 }
 
