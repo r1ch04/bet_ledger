@@ -1,0 +1,9 @@
+{
+  "name": "worldcup-calc",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/server": "^1.1.0"
+  }
+}

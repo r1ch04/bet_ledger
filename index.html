@@ -3,149 +3,40 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>投注紀錄儀表板</title>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="description" content="世界盃投注追蹤計算機 - 雲端同步、分析圖表"/>
+<title>⚽ 投注追蹤</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous"/>
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<style>
-:root,[data-theme="light"]{
-  --text-xs:clamp(.75rem,.7rem + .25vw,.875rem);
-  --text-sm:clamp(.875rem,.8rem + .35vw,1rem);
-  --text-base:clamp(1rem,.95rem + .25vw,1.125rem);
-  --text-lg:clamp(1.125rem,1rem + .6vw,1.4rem);
-  --text-xl:clamp(1.4rem,1.1rem + 1vw,2rem);
-  --sp1:.25rem;--sp2:.5rem;--sp3:.75rem;--sp4:1rem;--sp5:1.25rem;--sp6:1.5rem;--sp8:2rem;--sp10:2.5rem;
-  --bg:#f7f6f2;--surf:#f9f8f5;--surf2:#fbfbf9;--surfoff:#f3f0ec;--div:#dcd9d5;--bord:#d4d1ca;
-  --txt:#28251d;--muted:#66645f;--faint:#9a9892;--inv:#f9f8f4;
-  --pri:#01696f;--prihov:#0c4e54;--prihl:#cedcd8;
-  --suc:#437a22;--suchl:#d4dfcc;
-  --err:#a12c7b;--errhl:#e0ced7;
-  --warn:#964219;--warnhl:#ddcfc6;
-  --rad-sm:.375rem;--rad-md:.5rem;--rad-lg:.75rem;--rad-xl:1rem;--rad-full:9999px;
-  --sh-sm:0 1px 3px rgba(25,25,20,.07);--sh-md:0 6px 24px rgba(25,25,20,.09);--sh-lg:0 20px 60px rgba(25,25,20,.15);
-  --anim:180ms cubic-bezier(.16,1,.3,1);
-  --font:'Satoshi','Inter',sans-serif;--cw:1200px;
-}
-[data-theme="dark"]{
-  --bg:#171614;--surf:#1c1b19;--surf2:#201f1d;--surfoff:#252320;--div:#2e2c2a;--bord:#393836;
-  --txt:#e4e1da;--muted:#b7b1a6;--faint:#8a857b;--inv:#1b1a18;
-  --pri:#4f98a3;--prihov:#227f8b;--prihl:#2a3b3b;
-  --suc:#78b74d;--suchl:#2c3f25;--err:#d163a7;--errhl:#493744;--warn:#d0875d;--warnhl:#4d3d35;
-  --sh-sm:0 1px 3px rgba(0,0,0,.28);--sh-md:0 6px 24px rgba(0,0,0,.36);--sh-lg:0 20px 60px rgba(0,0,0,.5);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:none;text-size-adjust:none;-webkit-font-smoothing:antialiased;}
-body{min-height:100vh;font-family:var(--font);font-size:var(--text-base);color:var(--txt);background:var(--bg);line-height:1.6;overflow-x:hidden;}
-img,svg,canvas{display:block;max-width:100%;}
-button,input,select,textarea{font:inherit;color:inherit;}
-button{cursor:pointer;border:none;background:none;}
-a{color:inherit;text-decoration:none;}
-table{width:100%;border-collapse:collapse;}
-:focus-visible{outline:2px solid var(--pri);outline-offset:3px;border-radius:var(--rad-sm);}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
-@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important;}}
-::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--txt) 18%,transparent);border-radius:var(--rad-full);}
-::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--txt) 30%,transparent);}
-*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--txt) 18%,transparent) transparent;}
-.app{max-width:var(--cw);margin:0 auto;padding:var(--sp4);}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp4);padding:var(--sp3) 0 var(--sp4);position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:color-mix(in srgb,var(--bg) 88%,transparent);border-bottom:1px solid color-mix(in srgb,var(--txt) 9%,transparent);margin-bottom:var(--sp5);}
-.brand{display:flex;align-items:center;gap:var(--sp3);}
-.brand-icon{width:38px;height:38px;border-radius:var(--rad-lg);background:linear-gradient(135deg,var(--prihl),var(--surf2));display:grid;place-items:center;box-shadow:var(--sh-sm);color:var(--pri);font-size:1.1rem;}
-.brand-copy h1{font-size:var(--text-lg);font-weight:700;line-height:1.1;}
-.brand-copy small{font-size:var(--text-xs);color:var(--muted);}
-.top-actions{display:flex;align-items:center;gap:var(--sp2);flex-wrap:wrap;}
-.btn{min-height:40px;padding:0 var(--sp4);border-radius:var(--rad-md);display:inline-flex;align-items:center;justify-content:center;gap:var(--sp2);font-size:var(--text-sm);font-weight:500;border:1px solid color-mix(in srgb,var(--txt) 12%,transparent);transition:transform var(--anim),background var(--anim),color var(--anim);white-space:nowrap;}
-.btn:hover{transform:translateY(-1px);}
-.btn:active{transform:none;}
-.btn-primary{background:var(--pri);color:var(--inv);border-color:var(--pri);}
-.btn-primary:hover{background:var(--prihov);}
-.btn-ghost{background:var(--surf2);}
-.btn-ghost:hover{background:var(--surfoff);}
-.btn-danger{background:var(--errhl);color:var(--err);border-color:transparent;}
-.btn i{width:14px;text-align:center;}
-.kpi-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:var(--sp3);margin-bottom:var(--sp5);}
-.kpi{padding:var(--sp4) var(--sp4) var(--sp3);border-radius:var(--rad-lg);background:var(--surf2);border:1px solid color-mix(in srgb,var(--txt) 9%,transparent);box-shadow:var(--sh-sm);}
-.kpi-label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
-.kpi-value{font-size:var(--text-lg);font-weight:700;margin:var(--sp1) 0;font-variant-numeric:tabular-nums lining-nums;line-height:1.1;}
-.kpi-sub{font-size:var(--text-xs);color:var(--faint);}
-.pos{color:var(--suc);}.neg{color:var(--err);}.neu{color:var(--warn);}
-.tab-bar{display:flex;gap:var(--sp1);margin-bottom:var(--sp5);padding:var(--sp1);background:var(--surf2);border-radius:var(--rad-lg);width:fit-content;border:1px solid color-mix(in srgb,var(--txt) 9%,transparent);}
-.tab-btn{min-height:38px;padding:0 var(--sp5);border-radius:var(--rad-md);font-size:var(--text-sm);font-weight:500;color:var(--muted);transition:background var(--anim),color var(--anim);display:flex;align-items:center;gap:var(--sp2);}
-.tab-btn.active{background:var(--surf);color:var(--txt);box-shadow:var(--sh-sm);}
-.tab-panel{display:none;}.tab-panel.active{display:block;}
-.card{background:var(--surf);border:1px solid color-mix(in srgb,var(--txt) 9%,transparent);border-radius:var(--rad-xl);box-shadow:var(--sh-sm);padding:var(--sp5);}
-.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp4);margin-bottom:var(--sp4);flex-wrap:wrap;}
-.card-title{font-size:var(--text-lg);font-weight:700;}
-.card-sub{font-size:var(--text-sm);color:var(--muted);margin-top:2px;}
-.drag-grid{display:grid;gap:var(--sp5);}
-.drag-grid.two-col{grid-template-columns:1.3fr 0.9fr;}
-.drag-grid.chart-grid{grid-template-columns:1fr 1fr;}
-.drag-item{cursor:grab;transition:opacity .18s,transform .18s,box-shadow .18s;}
-.drag-item.card{resize:both;overflow:auto;min-width:320px;min-height:260px;}
-.drag-item.card:has(.canvas-wrap){display:flex;flex-direction:column;}
-.drag-item.card:has(.canvas-wrap) .canvas-wrap{flex:1;min-height:200px;}
-.drag-item.card::after{content:'';position:sticky;display:block;bottom:4px;left:100%;width:14px;height:14px;background:radial-gradient(circle,var(--faint) 1.5px,transparent 1.5px) 0 0/5px 5px;opacity:.55;pointer-events:none;margin-top:-18px;flex-shrink:0;}
-.drag-item:active{cursor:grabbing;}
-.drag-item.dragging{opacity:.45;transform:scale(.97);box-shadow:var(--sh-lg);}
-.drag-item.drag-over{outline:2px dashed var(--pri);outline-offset:3px;}
-.drag-handle{cursor:grab;color:var(--faint);padding:var(--sp2);border-radius:var(--rad-md);transition:color var(--anim),background var(--anim);}
-.drag-handle:hover{color:var(--muted);background:var(--surfoff);}
-.drag-handle:active{cursor:grabbing;}
-.full-col{grid-column:1/-1;}
-.canvas-wrap{position:relative;min-height:240px;height:240px;}
-.stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp4);}
-.stat-card{padding:var(--sp4);background:var(--surf2);border-radius:var(--rad-lg);border:1px solid color-mix(in srgb,var(--txt) 8%,transparent);}
-.stat-card .label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
-.stat-card .value{font-size:var(--text-lg);font-weight:700;margin-top:var(--sp1);font-variant-numeric:tabular-nums;}
-.stack{display:grid;gap:var(--sp5);}
-.filter-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp3);margin-bottom:var(--sp4);}
-.field{display:grid;gap:var(--sp2);}
-.field label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
-.field input,.field select,.field textarea{min-height:44px;width:100%;padding:var(--sp3) var(--sp4);background:var(--surf2);border:1px solid color-mix(in srgb,var(--txt) 10%,transparent);border-radius:var(--rad-md);transition:border-color var(--anim);}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--pri);}
-.field textarea{min-height:80px;resize:vertical;}
-.table-wrap{overflow:auto;border-radius:var(--rad-lg);border:1px solid color-mix(in srgb,var(--txt) 9%,transparent);max-height:460px;}
-thead th{position:sticky;top:0;background:var(--surfoff);z-index:2;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap;}
-th,td{padding:var(--sp3);text-align:left;border-bottom:1px solid color-mix(in srgb,var(--txt) 7%,transparent);vertical-align:middle;}
-td{font-size:var(--text-sm);}
-tbody tr:hover{background:color-mix(in srgb,var(--prihl) 18%,var(--surf));}
-.col-item{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.chip{display:inline-flex;align-items:center;border-radius:var(--rad-full);padding:.2rem .6rem;font-size:var(--text-xs);font-weight:700;min-height:24px;white-space:nowrap;gap:.3rem;}
-.chip-hedge{background:var(--warnhl);color:var(--warn);}
-.chip-normal{background:var(--prihl);color:var(--pri);}
-.row-actions{display:flex;gap:var(--sp1);}
-.icon-btn{min-width:34px;min-height:34px;border-radius:var(--rad-md);background:var(--surf2);border:1px solid color-mix(in srgb,var(--txt) 9%,transparent);font-size:.8rem;display:inline-flex;align-items:center;justify-content:center;transition:background var(--anim);}
-.icon-btn:hover{background:var(--surfoff);}
-.status-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp3);flex-wrap:wrap;padding-top:var(--sp4);border-top:1px solid color-mix(in srgb,var(--txt) 8%,transparent);margin-top:var(--sp4);}
-.pill{display:inline-flex;align-items:center;gap:var(--sp2);min-height:28px;padding:0 var(--sp3);border-radius:var(--rad-full);background:var(--surfoff);font-size:var(--text-xs);color:var(--muted);}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--suc);display:inline-block;}
-.toolbar{display:flex;gap:var(--sp2);flex-wrap:wrap;}
-.empty-state{display:none;padding:var(--sp10);text-align:center;border-radius:var(--rad-lg);border:1px dashed color-mix(in srgb,var(--txt) 14%,transparent);color:var(--muted);background:var(--surf2);}
-.empty-state.show{display:block;}
-.ins-table{width:100%;border-collapse:collapse;}
-.ins-table td{padding:var(--sp2) var(--sp3);font-size:var(--text-sm);border-bottom:1px solid color-mix(in srgb,var(--txt) 7%,transparent);}
-.ins-table tr:last-child td{border-bottom:none;}
-.ins-label{color:var(--muted);width:55%;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp4);}
-.form-grid .f-full{grid-column:1/-1;}
-.form-actions{display:flex;gap:var(--sp2);flex-wrap:wrap;margin-top:var(--sp3);}
-@media(max-width:1024px){.kpi-row{grid-template-columns:repeat(4,minmax(0,1fr));}.drag-grid.two-col{grid-template-columns:1fr;}.drag-grid.chart-grid{grid-template-columns:1fr;}.filter-bar{grid-template-columns:1fr 1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
-@media(max-width:640px){.topbar{position:static;}.kpi-row{grid-template-columns:repeat(2,minmax(0,1fr));}.filter-bar,.stats-grid{grid-template-columns:1fr;}.drag-grid.chart-grid{grid-template-columns:1fr;}.drag-grid.two-col{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}}
-</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+<script>/* 防止主題閃爍 */;(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
-
 <div class="app">
+  <div class="offline-banner" id="offlineBanner"><i class="fa-solid fa-wifi-slash"></i> 目前離線，操作將暫存於本地，恢復連線後自動同步</div>
   <header class="topbar">
     <div class="brand">
       <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
-      <div class="brand-copy"><h1>投注紀錄儀表板</h1><small>新增 · 修改 · 分析 · 快取 · 匯入匯出</small></div>
+      <div class="brand-copy">
+        <h1>投注追蹤</h1>
+        <small>雲端同步 · 分析圖表 · 即時更新</small>
+      </div>
     </div>
     <div class="top-actions">
       <button class="btn btn-ghost" id="themeBtn" aria-label="切換深色模式"><i class="fa-solid fa-moon"></i></button>
-      <button class="btn btn-ghost" id="resetSeedBtn"><i class="fa-solid fa-trash-can"></i> 清除資料</button>
+      <button class="btn btn-ghost" id="shareBtn" style="display:none"><i class="fa-solid fa-share-nodes"></i> 分享</button>
+      <div class="auth-section">
+        <div id="authSection">
+          <button class="btn btn-ghost" id="loginBtn"><i class="fa-solid fa-cloud-arrow-up"></i> 登入以同步雲端</button>
+        </div>
+        <div class="user-info" id="userInfo">
+          <img id="userAvatar" src="" alt="avatar"/>
+          <span id="userEmail"></span>
+          <button id="logoutBtn" title="登出"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+      </div>
       <button class="btn btn-primary" id="newRecordBtn"><i class="fa-solid fa-plus"></i> 新增紀錄</button>
     </div>
   </header>
@@ -158,6 +49,7 @@ tbody tr:hover{background:color-mix(in srgb,var(--prihl) 18%,var(--surf));}
       <div class="kpi"><div class="kpi-label">非對沖 ROI</div><div class="kpi-value" id="kpiNHRoi">0%</div><div class="kpi-sub">排除對沖單</div></div>
       <div class="kpi"><div class="kpi-label">平均賠率</div><div class="kpi-value" id="kpiAvgOdds">0x</div><div class="kpi-sub">支付÷本金（贏）</div></div>
       <div class="kpi"><div class="kpi-label">最大虧損</div><div class="kpi-value neg" id="kpiMaxLoss">0</div><div class="kpi-sub">單注最大虧損</div></div>
+      <div class="kpi"><div class="kpi-label">進行中</div><div class="kpi-value" id="kpiPending">0</div><div class="kpi-sub">待結算注單</div></div>
     </section>
     <div class="tab-bar" role="tablist">
       <button class="tab-btn active" role="tab" aria-selected="true" data-tab="records"><i class="fa-solid fa-table-list"></i> 紀錄管理</button>
@@ -176,20 +68,28 @@ tbody tr:hover{background:color-mix(in srgb,var(--prihl) 18%,var(--surf));}
               <button class="btn btn-ghost" id="exportCsvBtn"><i class="fa-solid fa-file-csv"></i> 匯出CSV</button>
               <label class="btn btn-ghost" for="importFile"><i class="fa-solid fa-file-import"></i> 匯入</label>
               <input id="importFile" type="file" accept=".json,.csv" class="sr-only"/>
+              <button class="btn btn-danger" id="resetSeedBtn" title="清除所有本地資料"><i class="fa-solid fa-trash-can"></i></button>
             </div>
           </div>
-          <div id="formSection" class="stack" style="gap:var(--sp4);display:none;padding:var(--sp4);margin-bottom:var(--sp4);background:var(--surf2);border-radius:var(--rad-lg);border:1px solid color-mix(in srgb,var(--txt) 8%,transparent)">
+          <div id="formSection" class="stack" style="gap:var(--sp4);display:none;padding:var(--sp4);margin-bottom:var(--sp4);background:var(--surf2);border-radius:var(--rad-lg);border:1px solid color-mix(in srgb,var(--txt)8%,transparent)">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--sp2)">
               <strong><span id="formTitle">新增紀錄</span></strong>
               <button type="button" class="btn btn-ghost" id="closeFormBtn" style="min-height:32px;padding:0 var(--sp3)"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="quick-templates">
+              <span style="font-size:var(--text-xs);color:var(--muted);align-self:center">快速模板：</span>
+              <button type="button" class="btn btn-ghost" data-template="parlay"><i class="fa-solid fa-link"></i> 串關</button>
+              <button type="button" class="btn btn-ghost" data-template="hedge"><i class="fa-solid fa-shield-halved"></i> 對沖</button>
+              <button type="button" class="btn btn-ghost" data-template="overunder"><i class="fa-solid fa-circle-plus"></i> 大/小球</button>
             </div>
             <form id="recordForm" class="stack" style="gap:var(--sp4)">
               <input type="hidden" id="recordId"/>
               <div class="form-grid">
                 <div class="field"><label for="fDate">比賽時間</label><input id="fDate" type="date" required/></div>
+                <div class="field"><label for="fStatus">狀態</label><select id="fStatus"><option value="settled">已結算</option><option value="pending">進行中</option></select></div>
                 <div class="field"><label for="fHedge">是否對沖單</label><select id="fHedge"><option value="否">否</option><option value="是">是</option></select></div>
-                <div class="field f-full"><label for="fItem">項目</label><textarea id="fItem" placeholder="例如：【巴西vs摩洛哥：大於2.5】" required></textarea></div>
                 <div class="field"><label for="fPlatform">平台</label><input id="fPlatform" type="text" placeholder="Stake / MEXC" required/></div>
+                <div class="field f-full"><label for="fItem">項目</label><textarea id="fItem" placeholder="例如：【巴西vs摩洛哥：大於2.5】" required></textarea></div>
                 <div class="field"><label for="fPrincipal">本金</label><input id="fPrincipal" type="number" step="0.01" min="0" required placeholder="0.00"/></div>
                 <div class="field"><label for="fPayout">支付額</label><input id="fPayout" type="number" step="0.0001" min="0" required placeholder="0.00"/></div>
                 <div class="field"><label for="fPnl">盈虧（自動）</label><input id="fPnl" type="number" step="0.0001" placeholder="自動"/></div>
@@ -206,22 +106,59 @@ tbody tr:hover{background:color-mix(in srgb,var(--prihl) 18%,var(--surf));}
             <div class="field"><label for="filterPlatform">平台</label><select id="filterPlatform"><option value="">全部</option></select></div>
             <div class="field"><label for="filterHedge">類型</label><select id="filterHedge"><option value="">全部</option><option value="否">非對沖</option><option value="是">對沖</option></select></div>
             <div class="field"><label for="filterOutcome">結果</label><select id="filterOutcome"><option value="">全部</option><option value="win">盈利</option><option value="draw">走水</option><option value="loss">虧損</option></select></div>
+            <div class="field"><label for="filterStatus">狀態</label><select id="filterStatus"><option value="">全部</option><option value="settled">已結算</option><option value="pending">進行中</option></select></div>
             <div class="field"><label for="searchInput">搜尋</label><input id="searchInput" type="search" placeholder="賽事、平台…"/></div>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>日期</th><th>類型</th><th>項目</th><th>平台</th><th>本金</th><th>支付額</th><th>盈虧</th><th>ROI</th><th>操作</th></tr></thead><tbody id="recordsTbody"></tbody></table></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>日期</th><th>類型</th><th>狀態</th><th>項目</th><th>平台</th><th>本金</th><th>支付額</th><th>盈虧</th><th>ROI</th><th>操作</th></tr>
+              </thead>
+              <tbody id="recordsTbody"></tbody>
+            </table>
+          </div>
           <div id="emptyState" class="empty-state"><i class="fa-solid fa-inbox" style="font-size:2rem;margin-bottom:.5rem;"></i><br/>目前沒有符合條件的紀錄。</div>
           <div class="status-bar">
             <div class="pill"><span class="dot"></span><span id="recordCount">0</span> 筆</div>
             <div class="pill"><i class="fa-solid fa-hard-drive"></i>&nbsp;<span id="cacheStatus">—</span></div>
             <div class="pill"><i class="fa-regular fa-clock"></i>&nbsp;<span id="lastUpdated">—</span></div>
+            <div class="pill"><i class="fa-solid fa-cloud"></i>&nbsp;<span id="syncStatus">本地模式</span></div>
           </div>
         </div>
-
       </div>
     </div>
     <div class="tab-panel" id="tab-analytics" role="tabpanel">
       <div class="stack">
         <div class="stats-grid" id="statsGrid"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-globe"></i> 各平台統計</div>
+            <div class="card-sub">按平台查看獨立績效</div>
+          </div>
+          <div class="platform-sub-tabs" id="platformTabs">
+            <button class="platform-sub-tab active" data-platform="">全部</button>
+          </div>
+          <div id="platformStatsContent"></div>
+        </div>
+        <div class="card" id="kellyCard">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-calculator"></i> Kelly 建議比例</div>
+          </div>
+          <div id="kellyContent">
+            <div class="kelly-badge">
+              <div class="label">建議單注比例</div>
+              <div class="value" id="kellyValue">—</div>
+              <div class="sub" id="kellySub">需有足夠非對沖紀錄方可計算</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-shield-halved"></i> 對沖效益分析</div>
+            <div class="card-sub">評估對沖策略的實際保護效果</div>
+          </div>
+          <div class="stats-grid" id="hedgeStatsGrid"></div>
+        </div>
         <div class="drag-item card full-col" draggable="true" data-drag-id="ins">
           <div class="card-head">
             <div>
@@ -249,10 +186,14 @@ tbody tr:hover{background:color-mix(in srgb,var(--prihl) 18%,var(--surf));}
             <div class="canvas-wrap"><canvas id="chartRoiScatter" role="img" aria-label="ROI散點"></canvas></div>
           </div>
           <div class="drag-item card" draggable="true" data-drag-id="c-daily">
-            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 每日盈虧彙總</div></div>
-            <div class="canvas-wrap"><canvas id="chartDailyPnl" role="img" aria-label="每日盈虧"></canvas></div>
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 每日本金使用率</div><div class="card-sub">對沖部分以不同色塊疊加</div></div>
+            <div class="canvas-wrap"><canvas id="chartDailyPrincipal" role="img" aria-label="每日本金"></canvas></div>
           </div>
-          <div class="drag-item card full-col" draggable="true" data-drag-id="c-sp">
+          <div class="drag-item card" draggable="true" data-drag-id="c-radar">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 平台雷達圖</div><div class="card-sub">各平台多維度比較</div></div>
+            <div class="canvas-wrap"><canvas id="chartPlatformRadar" role="img" aria-label="平台雷達"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-sp">
             <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 本金 vs 支付額</div><div class="card-sub">對角線以上為盈利，以下為虧損</div></div>
             <div class="canvas-wrap"><canvas id="chartStakePayout" role="img" aria-label="本金vs支付額"></canvas></div>
           </div>
@@ -261,51 +202,36 @@ tbody tr:hover{background:color-mix(in srgb,var(--prihl) 18%,var(--surf));}
     </div>
   </main>
 </div>
-<script>
-const SEED=[];
-const SK='brd-v3';
-const s={records:[],filtered:[],editingId:null,charts:{},cacheMode:'memory',lastUpdated:null};
-const $=id=>document.getElementById(id);
-(()=>{const root=document.documentElement;let mode=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';root.setAttribute('data-theme',mode);const btn=$('themeBtn');const paint=()=>{btn.innerHTML=mode==='dark'?'<i class="fa-solid fa-sun"></i>':'<i class="fa-solid fa-moon"></i>';};paint();btn.addEventListener('click',()=>{mode=mode==='dark'?'light':'dark';root.setAttribute('data-theme',mode);paint();setTimeout(renderCharts,80);});})();
-function storageOk(){try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true;}catch{return false;}}
-function saveCache(){s.lastUpdated=new Date().toLocaleString('zh-TW');const p=JSON.stringify({records:s.records,lastUpdated:s.lastUpdated});if(storageOk()){localStorage.setItem(SK,p);s.cacheMode='localStorage';}else{s._mem=p;s.cacheMode='memory';}$('cacheStatus').textContent=s.cacheMode==='localStorage'?'localStorage 持久':'記憶體暫存';$('lastUpdated').textContent=s.lastUpdated;}
-function loadCache(){try{if(storageOk()){const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}}catch{}if(s._mem){try{return JSON.parse(s._mem);}catch{}}return{records:JSON.parse(JSON.stringify(SEED)),lastUpdated:new Date().toLocaleString('zh-TW')};}
-function fmt(v,d=2){return Number(v||0).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d});}
-function pct(v){return(Number(v||0)*100).toFixed(2)+'%';}
-function cls(v){return v>0?'pos':v<0?'neg':'neu';}
-function outcome(r){return r.pnl>0?'win':r.pnl<0?'loss':'draw';}
-function escH(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function genId(){return s.records.reduce((m,r)=>Math.max(m,+r.id||0),0)+1;}
-function norm(r,i){return{id:+(r.id||i+1),date:String(r.date||r['比賽時間']||new Date().toISOString().slice(0,10)).slice(0,10),is_hedge:r.is_hedge||r['是否為對沖單']||'否',item:r.item||r['項目']||'',platform:r.platform||r['平台']||'',principal:+(r.principal||r['本金']||0),payout:+(r.payout||r['支付額']||0),pnl:+(r.pnl||r['盈虧']||0),roi:+(r.roi||r['ROI']||0)};}
-function cssVar(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
-function fillForm(r){s.editingId=r?.id??null;$('recordId').value=r?.id??'';$('fDate').value=r?.date??new Date().toISOString().slice(0,10);$('fHedge').value=r?.is_hedge??'否';$('fItem').value=r?.item??'';$('fPlatform').value=r?.platform??'';$('fPrincipal').value=r?.principal??'';$('fPayout').value=r?.payout??'';$('fPnl').value=r?.pnl??'';$('fRoi').value=r?.roi??'';$('deleteBtn').disabled=!r;$('saveBtn').innerHTML=r?'<i class="fa-solid fa-floppy-disk"></i> 更新紀錄':'<i class="fa-solid fa-floppy-disk"></i> 儲存紀錄';$('formTitle').textContent=r?`編輯紀錄 #${r.id}`:'新增紀錄';$('formSection').style.display='';}
-function resetForm(){fillForm(null);$('formSection').style.display='none';}
-function recalcDerived(){const p=+($('fPrincipal').value||0),pay=+($('fPayout').value||0);$('fPnl').value=+(pay-p).toFixed(6);$('fRoi').value=p?+((pay-p)/p).toFixed(6):0;}
-$('recordForm').addEventListener('submit',e=>{e.preventDefault();const id=+($('recordId').value||0);const p=+($('fPrincipal').value||0),pay=+($('fPayout').value||0);const pnlV=$('fPnl').value===''?pay-p:+$('fPnl').value;const roiV=$('fRoi').value===''?(p?pnlV/p:0):+$('fRoi').value;const record={id:id||genId(),date:$('fDate').value,is_hedge:$('fHedge').value,item:$('fItem').value.trim(),platform:$('fPlatform').value.trim(),principal:p,payout:pay,pnl:+pnlV.toFixed(6),roi:+roiV.toFixed(6)};if(!record.item||!record.platform||!record.date)return;const idx=s.records.findIndex(r=>r.id===record.id);if(idx>=0)s.records[idx]=record;else s.records.push(record);saveCache();refreshPlatformOpts();applyFilters();fillForm(record);});
-$('clearBtn').addEventListener('click',resetForm);
-$('deleteBtn').addEventListener('click',()=>{if(!s.editingId)return;s.records=s.records.filter(r=>r.id!==s.editingId);saveCache();refreshPlatformOpts();applyFilters();resetForm();});
-$('closeFormBtn').addEventListener('click',resetForm);
-['fPrincipal','fPayout'].forEach(id=>$(id).addEventListener('input',recalcDerived));
-document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-selected','false');});document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');btn.setAttribute('aria-selected','true');$('tab-'+btn.dataset.tab).classList.add('active');setTimeout(renderCharts,40);});});
-function initDragGrid(gridEl){if(!gridEl)return;let srcEl=null;gridEl.querySelectorAll('.drag-item').forEach(item=>{item.addEventListener('dragstart',e=>{srcEl=item;item.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',item.dataset.dragId||'');});item.addEventListener('dragend',()=>{item.classList.remove('dragging');gridEl.querySelectorAll('.drag-item').forEach(i=>i.classList.remove('drag-over'));srcEl=null;setTimeout(renderCharts,60);});item.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';if(srcEl&&srcEl!==item)item.classList.add('drag-over');});item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));item.addEventListener('drop',e=>{e.preventDefault();item.classList.remove('drag-over');if(!srcEl||srcEl===item)return;const items=[...gridEl.querySelectorAll('.drag-item')];const srcIdx=items.indexOf(srcEl),dstIdx=items.indexOf(item);if(srcIdx<dstIdx)item.after(srcEl);else item.before(srcEl);});});}
-function refreshPlatformOpts(){const cur=$('filterPlatform').value;const platforms=[...new Set(s.records.map(r=>r.platform).filter(Boolean))].sort();$('filterPlatform').innerHTML='<option value="">全部</option>'+platforms.map(p=>`<option>${escH(p)}</option>`).join('');$('filterPlatform').value=platforms.includes(cur)?cur:'';}
-function applyFilters(){const pl=$('filterPlatform').value,hd=$('filterHedge').value,oc=$('filterOutcome').value,q=$('searchInput').value.trim().toLowerCase();s.filtered=s.records.filter(r=>!pl||r.platform===pl).filter(r=>!hd||r.is_hedge===hd).filter(r=>!oc||outcome(r)===oc).filter(r=>!q||[r.item,r.platform,r.date].join(' ').toLowerCase().includes(q)).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id);renderTable();renderKPIs();renderInsights();renderCharts();}
-function renderTable(){const tbody=$('recordsTbody');tbody.innerHTML='';$('recordCount').textContent=s.filtered.length;$('emptyState').classList.toggle('show',!s.filtered.length);s.filtered.forEach(r=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${escH(r.date)}</td><td><span class="chip ${r.is_hedge==='是'?'chip-hedge':'chip-normal'}"><i class="fa-solid ${r.is_hedge==='是'?'fa-shield-halved':'fa-circle-check'}"></i>${r.is_hedge==='是'?'對沖':'一般'}</span></td><td class="col-item" title="${escH(r.item)}">${escH(r.item)}</td><td>${escH(r.platform)}</td><td>${fmt(r.principal)}</td><td>${fmt(r.payout,4)}</td><td class="${cls(r.pnl)}">${fmt(r.pnl,4)}</td><td class="${cls(r.roi)}">${pct(r.roi)}</td><td><div class="row-actions"><button class="icon-btn" data-edit="${r.id}" title="編輯"><i class="fa-solid fa-pen"></i></button><button class="icon-btn" data-del="${r.id}" title="刪除"><i class="fa-solid fa-trash-can"></i></button></div></td>`;tbody.appendChild(tr);});}
-$('recordsTbody').addEventListener('click',e=>{const editId=e.target.closest('[data-edit]')?.dataset.edit;const delId=e.target.closest('[data-del]')?.dataset.del;if(editId){const r=s.records.find(r=>r.id===+editId);fillForm(r);}if(delId){s.records=s.records.filter(r=>r.id!==+delId);saveCache();refreshPlatformOpts();applyFilters();if(s.editingId===+delId)resetForm();}});
-function computeStats(records){const stake=records.reduce((a,r)=>a+r.principal,0);const pnlSum=records.reduce((a,r)=>a+r.pnl,0);const wins=records.filter(r=>r.pnl>0);const draws=records.filter(r=>r.pnl===0);const losses=records.filter(r=>r.pnl<0);const roi=stake?pnlSum/stake:0;const winRate=records.length?wins.length/records.length:0;const nh=records.filter(r=>r.is_hedge==='否');const nhS=nh.reduce((a,r)=>a+r.principal,0),nhP=nh.reduce((a,r)=>a+r.pnl,0);const nhRoi=nhS?nhP/nhS:0;const avgOdds=wins.length?wins.reduce((a,r)=>a+(r.principal?r.payout/r.principal:0),0)/wins.length:0;const maxLoss=losses.length?Math.min(...losses.map(r=>r.pnl)):0;const avgStake=records.length?stake/records.length:0;const totalPayout=records.reduce((a,r)=>a+r.payout,0);const hedgeCount=records.filter(r=>r.is_hedge==='是').length;const hedgePnl=records.filter(r=>r.is_hedge==='是').reduce((a,r)=>a+r.pnl,0);const consLoss=(()=>{let mx=0,cur=0;[...records].sort((a,b)=>a.date<b.date?-1:1).forEach(r=>{if(r.pnl<0){cur++;mx=Math.max(mx,cur);}else cur=0;});return mx;})();const avgWin=wins.length?wins.reduce((a,r)=>a+r.pnl,0)/wins.length:0;const avgLoss=losses.length?losses.reduce((a,r)=>a+r.pnl,0)/losses.length:0;const rr=avgLoss?Math.abs(avgWin/avgLoss):0;const pf=losses.length?Math.abs(wins.reduce((a,r)=>a+r.pnl,0)/losses.reduce((a,r)=>a+r.pnl,0)):Infinity;return{stake,pnlSum,wins:wins.length,draws:draws.length,losses:losses.length,roi,winRate,nhRoi,avgOdds,maxLoss,avgStake,totalPayout,hedgeCount,hedgePnl,consLoss,avgWin,avgLoss,rr,pf,nhP,nhS};}
-function renderKPIs(){const st=computeStats(s.filtered);const set=(id,val,c)=>{const el=$(id);el.textContent=val;el.className='kpi-value'+(c?' '+c:'');};set('kpiStake',fmt(st.stake));set('kpiPnl',(st.pnlSum>=0?'+':'')+fmt(st.pnlSum,4),cls(st.pnlSum));set('kpiRoi',pct(st.roi),cls(st.roi));set('kpiWinRate',pct(st.winRate),cls(st.winRate-.5));set('kpiNHRoi',pct(st.nhRoi),cls(st.nhRoi));set('kpiAvgOdds',fmt(st.avgOdds,2)+'x');set('kpiMaxLoss',fmt(st.maxLoss,4),'neg');}
-function renderInsights(){const st=computeStats(s.filtered);const rows=[['<i class="fa-solid fa-trophy"></i> 勝 / 平 / 敗',`${st.wins} / ${st.draws} / ${st.losses}`,''],['<i class="fa-solid fa-shield-halved"></i> 對沖單數',`${st.hedgeCount} 筆`,''],['<i class="fa-solid fa-scale-balanced"></i> 對沖總盈虧',fmt(st.hedgePnl,4),cls(st.hedgePnl)],['<i class="fa-solid fa-coins"></i> 平均注碼',fmt(st.avgStake),''],['<i class="fa-solid fa-fire"></i> 最長連敗',`${st.consLoss} 場`,''],['<i class="fa-solid fa-sack-dollar"></i> 總支付額',fmt(st.totalPayout,4),'']];$('insightTable').innerHTML=rows.map(([l,v,c])=>`<tr><td class="ins-label">${l}</td><td class="${c}" style="font-weight:600;font-variant-numeric:tabular-nums">${v}</td></tr>`).join('');}
-function renderStatsGrid(){const st=computeStats(s.filtered);const cards=[{label:'非對沖本金',value:fmt(st.nhS),sub:'',c:''},{label:'非對沖盈虧',value:(st.nhP>=0?'+':'')+fmt(st.nhP,4),sub:'',c:cls(st.nhP)},{label:'平均獲利',value:(st.avgWin>=0?'+':'')+fmt(st.avgWin,4),sub:'贏單平均',c:cls(st.avgWin)},{label:'平均虧損',value:fmt(st.avgLoss,4),sub:'輸單平均',c:cls(st.avgLoss)},{label:'賺賠比 R:R',value:fmt(st.rr,2),sub:'平均獲利÷平均虧損',c:cls(st.rr-1)},{label:'獲利因子',value:isFinite(st.pf)?fmt(st.pf,2):'∞',sub:'總獲利÷總虧損',c:cls(st.pf-1)}];$('statsGrid').innerHTML=cards.map(c=>`<div class="stat-card"><div class="label">${c.label}</div><div class="value ${c.c}" style="font-variant-numeric:tabular-nums">${c.value}</div><div style="font-size:var(--text-xs);color:var(--faint);margin-top:2px">${c.sub}</div></div>`).join('');}
-function destroyCharts(){Object.values(s.charts).forEach(c=>c?.destroy?.());s.charts={};}
-function renderCharts(){if(typeof Chart==='undefined')return;destroyCharts();const records=[...s.filtered].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id);const txt=cssVar('--txt'),muted=cssVar('--muted'),faint=cssVar('--faint'),div=cssVar('--div');const pri=cssVar('--pri'),suc=cssVar('--suc'),err=cssVar('--err'),warn=cssVar('--warn');const baseScales={x:{ticks:{color:muted},grid:{color:div}},y:{ticks:{color:muted},grid:{color:div}}};const baseLegend={labels:{color:txt,boxWidth:12}};let run=0;const tL=[],tD=[],tC=[];records.forEach((r,i)=>{run+=r.pnl;tL.push(`${r.date.slice(5)} #${i+1}`);tD.push(+run.toFixed(4));tC.push(r.is_hedge==='是'?warn:pri);});s.charts.trend=new Chart($('chartPnlTrend'),{type:'line',data:{labels:tL,datasets:[{label:'累積盈虧',data:tD,borderColor:pri,backgroundColor:pri+'22',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:tC}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:baseLegend},scales:baseScales}});s.charts.bar=new Chart($('chartPnlBar'),{type:'bar',data:{labels:records.map((_,i)=>`#${i+1}`),datasets:[{label:'盈虧',data:records.map(r=>r.pnl),backgroundColor:records.map(r=>r.pnl>0?suc+'cc':r.pnl<0?err+'cc':warn+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:baseScales}});s.charts.outcome=new Chart($('chartOutcome'),{type:'doughnut',data:{labels:['勝','平','敗'],datasets:[{data:[records.filter(r=>r.pnl>0).length,records.filter(r=>r.pnl===0).length,records.filter(r=>r.pnl<0).length],backgroundColor:[suc,warn,err],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:baseLegend}}});const nPts=records.filter(r=>r.is_hedge==='否').map((r,i)=>({x:i,y:+(r.roi*100).toFixed(2)}));const hPts=records.filter(r=>r.is_hedge==='是').map((r,i)=>({x:i,y:+(r.roi*100).toFixed(2)}));s.charts.scatter=new Chart($('chartRoiScatter'),{type:'scatter',data:{datasets:[{label:'一般單',data:nPts,backgroundColor:pri+'bb',pointRadius:7},{label:'對沖單',data:hPts,backgroundColor:warn+'bb',pointRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:baseLegend},scales:{x:{...baseScales.x,title:{display:true,text:'序號',color:muted}},y:{...baseScales.y,title:{display:true,text:'ROI (%)',color:muted}}}}});const byDate={};records.forEach(r=>{byDate[r.date]=(byDate[r.date]||0)+r.pnl;});const dL=Object.keys(byDate).sort();s.charts.daily=new Chart($('chartDailyPnl'),{type:'bar',data:{labels:dL,datasets:[{label:'每日盈虧',data:dL.map(d=>+byDate[d].toFixed(4)),backgroundColor:dL.map(d=>byDate[d]>=0?suc+'cc':err+'cc'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:baseScales}});const maxV=Math.max(...records.map(r=>Math.max(r.principal,r.payout)))*1.15||100;s.charts.sp=new Chart($('chartStakePayout'),{type:'scatter',data:{datasets:[{label:'注單',data:records.map(r=>({x:r.principal,y:r.payout})),backgroundColor:records.map(r=>r.pnl>0?suc+'aa':r.pnl<0?err+'aa':warn+'aa'),pointRadius:8},{label:'損益平衡',data:[{x:0,y:0},{x:maxV,y:maxV}],type:'line',borderColor:faint,borderDash:[5,5],borderWidth:1.5,pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:baseLegend},scales:{x:{...baseScales.x,title:{display:true,text:'本金',color:muted}},y:{...baseScales.y,title:{display:true,text:'支付額',color:muted}}}}});renderStatsGrid();}
-function dl(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('exportJsonBtn').addEventListener('click',()=>dl(new Blob([JSON.stringify(s.records,null,2)],{type:'application/json'}),`bets-${Date.now()}.json`));
-$('exportCsvBtn').addEventListener('click',()=>{const h=['id','date','is_hedge','item','platform','principal','payout','pnl','roi'];const esc=v=>{const t=String(v??'');return/[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;};const csv=[h.join(','),...s.records.map(r=>h.map(k=>esc(r[k])).join(','))].join('\n');dl(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),`bets-${Date.now()}.csv`);});
-$('importFile').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const text=String(reader.result||'');let data=[];if(file.name.endsWith('.json'))data=JSON.parse(text);else{const rows=text.trim().replace(/^\uFEFF/,'').split(/\r?\n/);const heads=rows[0].split(',');data=rows.slice(1).filter(Boolean).map(row=>{const cols=[];let cur='',q=false;for(let i=0;i<row.length;i++){const c=row[i];if(c==='"'){if(q&&row[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(c===','&&!q){cols.push(cur);cur='';}else cur+=c;}cols.push(cur);const obj={};heads.forEach((k,i)=>obj[k.trim()]=cols[i]??'');return obj;});}s.records=data.map(norm);saveCache();refreshPlatformOpts();applyFilters();resetForm();}catch{alert('匯入失敗，請確認格式正確。');}};reader.readAsText(file,'utf-8');});
-$('newRecordBtn').addEventListener('click',()=>fillForm(null));
-$('resetSeedBtn').addEventListener('click',()=>{if(!confirm('確定清除所有資料？此操作無法還原。'))return;s.records=[];saveCache();refreshPlatformOpts();applyFilters();resetForm();});
-['filterPlatform','filterHedge','filterOutcome','searchInput'].forEach(id=>$(id).addEventListener('input',applyFilters));
-(()=>{const cached=loadCache();s.records=cached.records.map(norm);s.lastUpdated=cached.lastUpdated;$('cacheStatus').textContent=storageOk()?'localStorage 持久':'記憶體暫存';$('lastUpdated').textContent=s.lastUpdated||'—';refreshPlatformOpts();resetForm();applyFilters();initDragGrid($('recordsDragGrid'));initDragGrid($('analyticsDragGrid'));})();
-</script>
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2><i class="fa-solid fa-share-nodes"></i> 分享注單</h2>
+      <button class="btn btn-ghost" id="closeShareModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="shareExpiration">有效期限</label>
+        <select id="shareExpiration">
+          <option value="7">7 天</option>
+          <option value="30">30 天</option>
+          <option value="">永久</option>
+        </select>
+      </div>
+      <div id="shareGenerated" style="display:none">
+        <div class="field">
+          <label>分享連結</label>
+          <div style="display:flex;gap:var(--sp2);align-items:center;word-break:break-all;background:var(--surf2);padding:var(--sp3);border-radius:var(--rad-md);font-size:var(--text-xs);">
+            <span id="shareLinkText" style="flex:1"></span>
+            <button class="copy-btn" id="copyShareLink"><i class="fa-solid fa-copy"></i> 複製</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="generateShareBtn"><i class="fa-solid fa-link"></i> 產生分享連結</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
 </body>
 </html>

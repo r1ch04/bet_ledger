@@ -1,0 +1,14 @@
+[auth]
+enabled = true
+
+[edge_runtime]
+policy = "per_worker"
+
+[functions]
+# bets 函數：需要使用者驗證（JWT）
+[functions.bets]
+verify_jwt = true
+
+# share 函數：唯讀分享連結不需要使用者 JWT，使用 publishable key
+[functions.share]
+verify_jwt = false
