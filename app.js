@@ -122,6 +122,16 @@ let supabaseClient = null;
 let realtimeChannel = null;
 let offlineQueue = [];
 
+/* 手動從 URL hash 取出 OAuth token，避免 SDK 非同步初始化未完成 */
+function getTokensFromHash(){
+  const h = window.location.hash;
+  if(!h || !h.includes('access_token')) return null;
+  const p = new URLSearchParams(h.replace('#',''));
+  const at = p.get('access_token');
+  const rt = p.get('refresh_token');
+  return at ? { access_token: at, refresh_token: rt || '' } : null;
+}
+
 async function initSupabase(){
   if(!SUPABASE_URL||!SUPABASE_ANON_KEY){
     console.warn('Supabase 未設定，僅使用本地模式');
@@ -146,7 +156,21 @@ async function initSupabase(){
         unsubscribeRealtime();
       }
     });
-    // 先嘗試 getSession（離線可用）
+    // 1️. 優先處理 OAuth redirect URL hash（手動取出 token）
+    const tokens = getTokensFromHash();
+    if(tokens){
+      const { data, error } = await supabaseClient.auth.setSession(tokens);
+      if(!error && data?.user){
+        state.user = data.user;
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+        updateAuthUI();
+        setupRealtime();
+        processOfflineQueue();
+        checkShareMode();
+        return;
+      }
+    }
+    // 2️. 從 localStorage 還原 session
     const { data: { session } } = await supabaseClient.auth.getSession();
     if(session?.user){
       state.user = session.user;
@@ -154,21 +178,20 @@ async function initSupabase(){
       setupRealtime();
       processOfflineQueue();
       checkShareMode();
-    } else {
-      // OAuth redirect 後 getSession 可能取不到 session，
-      // 改用 getUser() 處理 URL hash token
-      try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if(user){
-          state.user = user;
-          updateAuthUI();
-          setupRealtime();
-          processOfflineQueue();
-          checkShareMode();
-        }
-      } catch(e) {
-        console.warn('getUser fallback 失敗', e);
+      return;
+    }
+    // 3️. 最後嘗試由伺服器驗證 token
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if(user){
+        state.user = user;
+        updateAuthUI();
+        setupRealtime();
+        processOfflineQueue();
+        checkShareMode();
       }
+    } catch(e) {
+      /* 無網路時靜默失敗，維持本地模式 */
     }
   } catch(e){
     console.warn('Supabase 初始化失敗，僅使用本地模式', e);
