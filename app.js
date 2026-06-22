@@ -206,7 +206,7 @@ function checkShareMode(){
   document.querySelectorAll('.btn-danger, #newRecordBtn, #deleteBtn, .icon-btn[data-del], .icon-btn[data-edit]').forEach(el => {
     if(el) el.style.display = 'none';
   });
-  const loginBtn = $('#loginBtn');
+  const loginBtn = $('loginBtn');
   if(loginBtn) loginBtn.textContent = '唯讀檢視模式';
   if(supabaseClient){
     loadSharedData(token);
@@ -245,17 +245,17 @@ async function loadSharedData(token){
 }
 
 function updateAuthUI(){
-  const loginBtn = $('#loginBtn');
-  const userInfo = $('#userInfo');
-  const shareBtn = $('#shareBtn');
+  const loginBtn = $('loginBtn');
+  const userInfo = $('userInfo');
+  const shareBtn = $('shareBtn');
   const syncStatus = $('syncStatus');
   /* DOM 尚未就緒時靜默返回 */
   if(!loginBtn || !userInfo) return;
   if(state.user){
     try{ loginBtn.style.display = 'none'; }catch{}
     try{ userInfo.style.display = 'flex'; }catch{}
-    const av = $('#userAvatar'); if(av) av.src = state.user.user_metadata?.avatar_url || '';
-    const em = $('#userEmail'); if(em) em.textContent = state.user.email || '';
+    const av = $('userAvatar'); if(av) av.src = state.user.user_metadata?.avatar_url || '';
+    const em = $('userEmail'); if(em) em.textContent = state.user.email || '';
     if(shareBtn) shareBtn.style.display = '';
     if(syncStatus) syncStatus.textContent = '已同步雲端';
     if(state.records.length > 0 && !localStorage.getItem('migrated_'+state.user.id)){
@@ -316,7 +316,10 @@ async function fetchSupabaseRecords(){
       .order('id', { ascending: false });
     if(error) throw error;
     if(data){
-      state.records = data.map(norm);
+      const serverIds = new Set(data.map(r => r.id));
+      // keep local records that don't exist on server yet (not synced)
+      const localOnly = state.records.filter(r => !r.supabaseId && !serverIds.has(r.id));
+      state.records = [...data.map(norm), ...localOnly];
       saveCache();
       applyFilters();
     }
@@ -419,10 +422,17 @@ async function executeSyncOp(op){
     const { error } = await supabaseClient.from('bets').insert(base);
     if(error) throw error;
   } else if(action === 'update'){
-    const { error } = await supabaseClient.from('bets').update(base).eq('id', record.supabaseId||record.id);
+    const { error, status } = await supabaseClient.from('bets').update(base).eq('id', record.supabaseId||record.id);
+    if(status === 404){
+      // record no longer exists on server, remove from local state too
+      state.records = state.records.filter(r => (r.supabaseId||r.id) !== (record.supabaseId||record.id));
+      saveCache();
+      return;
+    }
     if(error) throw error;
   } else if(action === 'delete'){
-    const { error } = await supabaseClient.from('bets').delete().eq('id', record.supabaseId||record.id);
+    const { error, status } = await supabaseClient.from('bets').delete().eq('id', record.supabaseId||record.id);
+    if(status === 404) return; // already gone
     if(error) throw error;
   }
 }
@@ -484,13 +494,13 @@ async function syncToSupabase(action, record){
    ================================================================ */
 window.addEventListener('online', ()=>{
   state.isOnline = true;
-  $('#offlineBanner').classList.remove('show');
+  $('offlineBanner').classList.remove('show');
   processOfflineQueue();
   if(state.user) fetchSupabaseRecords();
 });
 window.addEventListener('offline', ()=>{
   state.isOnline = false;
-  $('#offlineBanner').classList.add('show');
+  $('offlineBanner').classList.add('show');
 });
 
 /* ================================================================
@@ -893,8 +903,9 @@ function computePlatformStats(){
 
 function renderPlatformStats(){
   const stats = computePlatformStats();
-  const tabsContainer = $('#platformTabs');
-  const content = $('#platformStatsContent');
+  const tabsContainer = $('platformTabs');
+  const content = $('platformStatsContent');
+  if(!tabsContainer || !content) return;
   const platforms = Object.keys(stats);
   tabsContainer.innerHTML = platforms.map(p => {
     const name = p === '' ? '全部' : stats[p].name;
@@ -943,8 +954,8 @@ function computeKelly(){
 
 function renderKelly(){
   const kelly = computeKelly();
-  const valEl = $('#kellyValue');
-  const subEl = $('#kellySub');
+  const valEl = $('kellyValue');
+  const subEl = $('kellySub');
   if(!kelly){
     valEl.textContent = '—';
     subEl.textContent = '需有至少 5 筆非對沖已結算紀錄方可計算';
@@ -958,13 +969,15 @@ function renderKelly(){
    對沖效益分析
    ================================================================ */
 function renderHedgeAnalysis(){
+  const el = $('hedgeStatsGrid');
+  if(!el) return;
   const settled = state.records.filter(isSettled);
   const hedgeBets = settled.filter(r => r.is_hedge === '是');
   const保住金額 = hedgeBets.reduce((a,r) => a + r.payout, 0);
   const對沖成本 = hedgeBets.reduce((a,r) => a + r.principal, 0);
   const淨效益 = 保住金額 - 對沖成本;
   const hedgePnl = hedgeBets.reduce((a,r) => a + r.pnl, 0);
-  $('#hedgeStatsGrid').innerHTML = `
+  el.innerHTML = `
     <div class="stat-card"><div class="label">對沖注單數</div><div class="value">${hedgeBets.length}</div></div>
     <div class="stat-card"><div class="label">對沖保住金額</div><div class="value ${cls(保住金額)}">${fmt(保住金額,4)}</div></div>
     <div class="stat-card"><div class="label">對沖成本</div><div class="value">${fmt(對沖成本,4)}</div></div>
@@ -1216,30 +1229,34 @@ $('resetSeedBtn').addEventListener('click', () => {
   resetForm();
 });
 
-['filterPlatform','filterHedge','filterOutcome','filterStatus','searchInput'].forEach(id =>
-  $(id).addEventListener('input', applyFilters)
-);
+['filterPlatform','filterHedge','filterOutcome','filterStatus','searchInput'].forEach(id => {
+  const el = $(id);
+  if(el) el.addEventListener('input', applyFilters);
+});
 
 /* ================================================================
    分享功能
    ================================================================ */
-$('shareBtn').addEventListener('click', () => {
-  $('#shareModal').classList.add('show');
-  $('#shareGenerated').style.display = 'none';
+if($('shareBtn')) $('shareBtn').addEventListener('click', () => {
+  const m = $('shareModal'), g = $('shareGenerated');
+  if(m) m.classList.add('show');
+  if(g) g.style.display = 'none';
 });
-$('closeShareModal').addEventListener('click', () => {
-  $('#shareModal').classList.remove('show');
+if($('closeShareModal')) $('closeShareModal').addEventListener('click', () => {
+  const m = $('shareModal');
+  if(m) m.classList.remove('show');
 });
-$('shareModal').addEventListener('click', e => {
-  if(e.target === $('#shareModal')) $('#shareModal').classList.remove('show');
+if($('shareModal')) $('shareModal').addEventListener('click', e => {
+  const m = $('shareModal');
+  if(e.target === m && m) m.classList.remove('show');
 });
 
-$('generateShareBtn').addEventListener('click', async () => {
+if($('generateShareBtn')) $('generateShareBtn').addEventListener('click', async () => {
   if(!supabaseClient || !state.user){
     alert('請先登入才能分享');
     return;
   }
-  const expiration = $('#shareExpiration').value;
+  const expiration = $('shareExpiration')?.value;
   let expiresAt = null;
   if(expiration){
     const d = new Date();
@@ -1253,18 +1270,21 @@ $('generateShareBtn').addEventListener('click', async () => {
     }).select('token').single();
     if(error) throw error;
     const shareUrl = location.origin + location.pathname + '?share=' + data.token;
-    $('#shareLinkText').textContent = shareUrl;
-    $('#shareGenerated').style.display = '';
+    const lt = $('shareLinkText'), sg = $('shareGenerated');
+    if(lt) lt.textContent = shareUrl;
+    if(sg) sg.style.display = '';
   } catch(e){
     alert('產生分享連結失敗：' + e.message);
   }
 });
 
-$('copyShareLink').addEventListener('click', () => {
-  const text = $('#shareLinkText').textContent;
+if($('copyShareLink')) $('copyShareLink').addEventListener('click', () => {
+  const text = $('shareLinkText')?.textContent;
+  if(!text) return;
   navigator.clipboard.writeText(text).then(() => {
-    $('copyShareLink').innerHTML = '<i class="fa-solid fa-check"></i> 已複製';
-    setTimeout(() => { $('copyShareLink').innerHTML = '<i class="fa-solid fa-copy"></i> 複製'; }, 2000);
+    const c = $('copyShareLink');
+    if(c) c.innerHTML = '<i class="fa-solid fa-check"></i> 已複製';
+    setTimeout(() => { if(c) c.innerHTML = '<i class="fa-solid fa-copy"></i> 複製'; }, 2000);
   });
 });
 
@@ -1273,25 +1293,28 @@ $('copyShareLink').addEventListener('click', () => {
    ================================================================ */
 document.addEventListener('keydown', e => {
   if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-  if($('#shareModal').classList.contains('show')) return;
+  const shareModal = $('shareModal');
+  if(shareModal && shareModal.classList.contains('show')) return;
   if(e.key === 'n' || e.key === 'N'){
     e.preventDefault();
     if(!state.isReadOnly) fillForm(null);
   }
   if(e.key === '/'){
     e.preventDefault();
-    $('searchInput').focus();
+    const si = $('searchInput');
+    if(si) si.focus();
   }
   if(e.key === 'Escape'){
-    if($('#formSection').style.display !== 'none') resetForm();
+    const fs = $('formSection');
+    if(fs && fs.style.display !== 'none') resetForm();
   }
 });
 
 /* ================================================================
    Auth 事件綁定
    ================================================================ */
-$('loginBtn').addEventListener('click', handleLogin);
-$('logoutBtn').addEventListener('click', handleLogout);
+if($('loginBtn')) $('loginBtn').addEventListener('click', handleLogin);
+if($('logoutBtn')) $('logoutBtn').addEventListener('click', handleLogout);
 
 /* ================================================================
    初始化
@@ -1300,8 +1323,8 @@ $('logoutBtn').addEventListener('click', handleLogout);
   const cached = loadCache();
   state.records = cached.records.map(norm);
   state.lastUpdated = cached.lastUpdated;
-  $('cacheStatus').textContent = storageOk() ? 'localStorage 持久' : '記憶體暫存';
-  $('lastUpdated').textContent = state.lastUpdated || '—';
+  if($('cacheStatus')) $('cacheStatus').textContent = storageOk() ? 'localStorage 持久' : '記憶體暫存';
+  if($('lastUpdated')) $('lastUpdated').textContent = state.lastUpdated || '—';
   await initSupabase();
   if(!state.isReadOnly){
     refreshPlatformOpts();
