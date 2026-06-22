@@ -133,24 +133,43 @@ async function initSupabase(){
     });
     state.supabase = supabaseClient;
     supabaseClient.auth.onAuthStateChange((event, session) => {
-      state.user = session?.user || null;
+      const user = session?.user || null;
+      if(user && !state.user) state.user = user;
       updateAuthUI();
-      if(session?.user){
+      if(user){
         setupRealtime();
         processOfflineQueue();
         checkShareMode();
-      } else {
+      } else if(state.user) {
+        state.user = null;
+        updateAuthUI();
         unsubscribeRealtime();
       }
     });
+    // 先嘗試 getSession（離線可用）
     const { data: { session } } = await supabaseClient.auth.getSession();
-    state.user = session?.user || null;
-    updateAuthUI();
     if(session?.user){
+      state.user = session.user;
+      updateAuthUI();
       setupRealtime();
       processOfflineQueue();
+      checkShareMode();
+    } else {
+      // OAuth redirect 後 getSession 可能取不到 session，
+      // 改用 getUser() 處理 URL hash token
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if(user){
+          state.user = user;
+          updateAuthUI();
+          setupRealtime();
+          processOfflineQueue();
+          checkShareMode();
+        }
+      } catch(e) {
+        console.warn('getUser fallback 失敗', e);
+      }
     }
-    checkShareMode();
   } catch(e){
     console.warn('Supabase 初始化失敗，僅使用本地模式', e);
   }
