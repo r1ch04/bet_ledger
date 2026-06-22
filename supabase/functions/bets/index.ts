@@ -1,4 +1,4 @@
-import { withSupabase } from "@supabase/server"
+import { withSupabase } from "jsr:@supabase/server"
 
 interface Bet {
   id?: number

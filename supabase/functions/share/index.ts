@@ -1,4 +1,4 @@
-import { withSupabase } from "@supabase/server"
+import { withSupabase } from "jsr:@supabase/server"
 
 // 建立分享連結（需要使用者登入，由 publishable key 驗證）
 // 驗證分享 token 並回傳注單資料（公開，不需登入）
