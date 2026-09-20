@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="description" content="通用投注與預測帳本 - 雲端同步、分析圖表"/>
+<title>BetLedger · 預測帳本</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous"/>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+<script>/* 防止主題閃爍 */;(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script type="module" crossorigin src="/assets/index-BlFBrRkM.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-B31DeAlR.css">
+</head>
+<body>
+<div class="app">
+  <div class="offline-banner" id="offlineBanner"><i class="fa-solid fa-wifi-slash"></i> 目前離線，操作將暫存於本地，恢復連線後自動同步</div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <div class="brand-copy">
+        <h1>預測帳本</h1>
+        <small>雲端同步 · 分析圖表 · 即時更新</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost" id="themeBtn" aria-label="切換深色模式"><i class="fa-solid fa-moon"></i></button>
+      <button class="btn btn-ghost" id="shareBtn" style="display:none"><i class="fa-solid fa-share-nodes"></i> 分享</button>
+      <div class="auth-section">
+        <div id="authSection">
+          <button class="btn btn-ghost" id="loginBtn"><i class="fa-solid fa-cloud-arrow-up"></i> 登入以同步雲端</button>
+        </div>
+        <div class="user-info" id="userInfo">
+          <img id="userAvatar" src="" alt="avatar"/>
+          <span id="userEmail"></span>
+          <button id="logoutBtn" title="登出"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="kpi-row" aria-label="核心指標">
+      <div class="kpi"><div class="kpi-label">總投入</div><div class="kpi-value" id="kpiStake">0</div><div class="kpi-sub">本金合計</div></div>
+      <div class="kpi"><div class="kpi-label">總盈虧</div><div class="kpi-value" id="kpiPnl">0</div><div class="kpi-sub">支付額－本金</div></div>
+      <div class="kpi"><div class="kpi-label">整體 ROI</div><div class="kpi-value" id="kpiRoi">0%</div><div class="kpi-sub">盈虧÷本金</div></div>
+      <div class="kpi"><div class="kpi-label">勝率</div><div class="kpi-value" id="kpiWinRate">0%</div><div class="kpi-sub">盈利注單占比</div></div>
+      <div class="kpi"><div class="kpi-label">非對沖 ROI</div><div class="kpi-value" id="kpiNHRoi">0%</div><div class="kpi-sub">排除對沖單</div></div>
+      <div class="kpi"><div class="kpi-label">平均賠率</div><div class="kpi-value" id="kpiAvgOdds">0x</div><div class="kpi-sub">支付÷本金（贏）</div></div>
+      <div class="kpi"><div class="kpi-label">最大虧損</div><div class="kpi-value neg" id="kpiMaxLoss">0</div><div class="kpi-sub">單注最大虧損</div></div>
+      <div class="kpi"><div class="kpi-label">進行中</div><div class="kpi-value" id="kpiPending">0</div><div class="kpi-sub">待結算注單</div></div>
+    </section>
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-tab="records"><i class="fa-solid fa-table-list"></i> 紀錄管理</button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="analytics"><i class="fa-solid fa-chart-bar"></i> 數據分析</button>
+    </div>
+    <div class="tab-panel active" id="tab-records" role="tabpanel">
+      <div class="drag-grid" id="recordsDragGrid">
+        <div class="drag-item card" draggable="true" data-drag-id="tbl">
+          <div class="card-head">
+            <div>
+              <div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 注單紀錄</div>
+              <div class="card-sub">點列或用「⋯」完整編輯；雙擊欄位可快速修改</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn btn-ghost" id="exportJsonBtn"><i class="fa-solid fa-file-code"></i> 匯出JSON</button>
+              <button class="btn btn-ghost" id="exportCsvBtn"><i class="fa-solid fa-file-csv"></i> 匯出CSV</button>
+              <label class="btn btn-ghost" for="importFile"><i class="fa-solid fa-file-import"></i> 匯入</label>
+              <input id="importFile" type="file" accept=".json,.csv" class="sr-only"/>
+              <button class="btn btn-danger" id="resetSeedBtn" title="清除所有本地資料"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+          </div>
+          <div class="records-toolbar">
+            <div class="search-field">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="searchInput" type="search" placeholder="搜尋賽事、平台、項目…"/>
+            </div>
+            <button class="btn btn-ghost" id="filterToggle" aria-expanded="false"><i class="fa-solid fa-filter"></i> 篩選<span class="filter-count" id="filterCount"></span></button>
+            <div class="menu">
+              <button class="btn btn-ghost" id="colToggle" aria-expanded="false"><i class="fa-solid fa-table-columns"></i> 欄位</button>
+              <div class="menu-list col-menu" id="colMenu"></div>
+            </div>
+            <button class="btn btn-primary" id="addRecordBtn"><i class="fa-solid fa-plus"></i> 新增</button>
+          </div>
+          <div class="filter-panel" id="filterPanel">
+            <div class="filter-bar">
+              <div class="field"><label for="filterPlatform">平台</label><select id="filterPlatform"><option value="">全部</option></select></div>
+              <div class="field"><label for="filterHedge">類型</label><select id="filterHedge"><option value="">全部</option><option value="否">非對沖</option><option value="是">對沖</option></select></div>
+              <div class="field"><label for="filterOutcome">結果</label><select id="filterOutcome"><option value="">全部</option><option value="win">盈利</option><option value="draw">走水</option><option value="loss">虧損</option></select></div>
+              <div class="field"><label for="filterStatus">狀態</label><select id="filterStatus"><option value="">全部</option><option value="settled">已結算</option><option value="pending">進行中</option></select></div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="recordsTable">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="date" data-col="date">日期</th>
+                  <th class="sortable" data-sort="is_hedge" data-col="is_hedge">類型</th>
+                  <th class="sortable" data-sort="status" data-col="status">狀態</th>
+                  <th class="sortable" data-sort="item" data-col="item">項目</th>
+                  <th class="sortable" data-sort="platform" data-col="platform">平台</th>
+                  <th class="sortable" data-sort="odds" data-col="odds">賠率</th>
+                  <th class="sortable" data-sort="principal" data-col="principal">本金</th>
+                  <th class="sortable" data-sort="payout" data-col="payout">支付額</th>
+                  <th class="sortable" data-sort="pnl" data-col="pnl">盈虧</th>
+                  <th class="sortable" data-sort="roi" data-col="roi">ROI</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="recordsTbody"></tbody>
+            </table>
+          </div>
+          <div id="emptyState" class="empty-state"><i class="fa-solid fa-inbox" style="font-size:2rem;margin-bottom:.5rem;"></i><br/>目前沒有符合條件的紀錄。</div>
+          <div class="status-bar">
+            <div class="pill"><span class="dot"></span><span id="recordCount">0</span> 筆</div>
+            <div class="pill"><i class="fa-solid fa-hard-drive"></i>&nbsp;<span id="cacheStatus">—</span></div>
+            <div class="pill"><i class="fa-regular fa-clock"></i>&nbsp;<span id="lastUpdated">—</span></div>
+            <div class="pill"><i class="fa-solid fa-cloud"></i>&nbsp;<span id="syncStatus">本地模式</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-analytics" role="tabpanel">
+      <div class="stack">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-globe"></i> 各平台統計</div>
+            <div class="card-sub">按平台查看獨立績效</div>
+          </div>
+          <div class="platform-sub-tabs" id="platformTabs">
+            <button class="platform-sub-tab active" data-platform="">全部</button>
+          </div>
+          <div id="platformStatsContent"></div>
+        </div>
+        <div class="card" id="kellyCard">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-calculator"></i> Kelly 建議比例</div>
+          </div>
+          <div id="kellyContent">
+            <div class="kelly-badge">
+              <div class="label">建議單注比例</div>
+              <div class="value" id="kellyValue">—</div>
+              <div class="sub" id="kellySub">需有足夠非對沖紀錄方可計算</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-shield-halved"></i> 對沖效益分析</div>
+            <div class="card-sub">評估對沖策略的實際保護效果</div>
+          </div>
+          <div class="stats-grid" id="hedgeStatsGrid"></div>
+        </div>
+        <div class="drag-item card full-col" draggable="true" data-drag-id="ins">
+          <div class="card-head">
+            <div>
+              <div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 衍生洞察</div>
+              <div class="card-sub">快速識別風格與風險集中點</div>
+            </div>
+          </div>
+          <table class="ins-table"><tbody id="insightTable"></tbody></table>
+        </div>
+        <div class="drag-grid chart-grid" id="analyticsDragGrid">
+          <div class="drag-item card full-col" draggable="true" data-drag-id="c-trend">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 累積盈虧走勢</div><div class="card-sub">依時間序，對沖點以暖色標示</div></div>
+            <div class="canvas-wrap"><canvas id="chartPnlTrend" role="img" aria-label="累積盈虧走勢"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-bar">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 各注單盈虧分布</div></div>
+            <div class="canvas-wrap"><canvas id="chartPnlBar" role="img" aria-label="各注單盈虧"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-outcome">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 勝平敗分布</div></div>
+            <div class="canvas-wrap"><canvas id="chartOutcome" role="img" aria-label="勝平敗"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-scatter">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 單注 ROI 散點</div><div class="card-sub">一般 vs 對沖</div></div>
+            <div class="canvas-wrap"><canvas id="chartRoiScatter" role="img" aria-label="ROI散點"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-daily">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 每日本金使用率</div><div class="card-sub">對沖部分以不同色塊疊加</div></div>
+            <div class="canvas-wrap"><canvas id="chartDailyPrincipal" role="img" aria-label="每日本金"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-radar">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 平台雷達圖</div><div class="card-sub">各平台多維度比較</div></div>
+            <div class="canvas-wrap"><canvas id="chartPlatformRadar" role="img" aria-label="平台雷達"></canvas></div>
+          </div>
+          <div class="drag-item card" draggable="true" data-drag-id="c-sp">
+            <div class="card-head"><div class="card-title"><button class="drag-handle" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></button> 本金 vs 支付額</div><div class="card-sub">對角線以上為盈利，以下為虧損</div></div>
+            <div class="canvas-wrap"><canvas id="chartStakePayout" role="img" aria-label="本金vs支付額"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2><i class="fa-solid fa-share-nodes"></i> 分享注單</h2>
+      <button class="btn btn-ghost" id="closeShareModal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="shareExpiration">有效期限</label>
+        <select id="shareExpiration">
+          <option value="7">7 天</option>
+          <option value="30">30 天</option>
+          <option value="">永久</option>
+        </select>
+      </div>
+      <div id="shareGenerated" style="display:none">
+        <div class="field">
+          <label>分享連結</label>
+          <div style="display:flex;gap:var(--sp2);align-items:center;word-break:break-all;background:var(--surf2);padding:var(--sp3);border-radius:var(--rad-md);font-size:var(--text-xs);">
+            <span id="shareLinkText" style="flex:1"></span>
+            <button class="copy-btn" id="copyShareLink"><i class="fa-solid fa-copy"></i> 複製</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="generateShareBtn"><i class="fa-solid fa-link"></i> 產生分享連結</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-head">
+      <h2 id="confirmTitle">確認</h2>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-message" id="confirmMessage"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="confirmCancel">取消</button>
+      <button class="btn btn-primary" id="confirmOk">確定</button>
+    </div>
+  </div>
+</div>
+<div class="drawer-overlay" id="recordDrawer">
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+    <div class="drawer-head">
+      <strong id="formTitle">新增紀錄</strong>
+      <button type="button" class="btn btn-ghost btn-sm" id="closeFormBtn" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="drawer-body">
+      <form id="recordForm" class="stack" style="gap:var(--sp4)">
+        <input type="hidden" id="recordId"/>
+        <div class="form-grid">
+          <div class="field"><label for="fDate">比賽時間</label><input id="fDate" type="date" required/></div>
+          <div class="field"><label for="fStatus">狀態</label><select id="fStatus"><option value="settled">已結算</option><option value="pending">進行中</option></select></div>
+          <div class="field"><label for="fHedge">是否對沖單</label><select id="fHedge"><option value="否">否</option><option value="是">是</option></select></div>
+          <div class="field"><label for="fPlatform">平台</label><input id="fPlatform" type="text" list="platformList" placeholder="Stake / MEXC" required/></div>
+        </div>
+
+        <div class="item-builder" id="itemBuilder">
+          <div class="builder-head">
+            <span class="builder-title"><i class="fa-solid fa-wand-magic-sparkles"></i> 快速建立項目</span>
+            <label class="switch"><input type="checkbox" id="freeTextToggle"/><span>自由輸入</span></label>
+          </div>
+          <div class="builder-legs" id="builderLegs"></div>
+          <div class="builder-foot">
+            <button type="button" class="btn btn-ghost btn-sm" id="addLegBtn"><i class="fa-solid fa-plus"></i> 新增一腿（串關）</button>
+            <div class="quick-chips">
+              <button type="button" class="chip-btn" data-chip="波膽">波膽</button>
+              <button type="button" class="chip-btn" data-chip="BTTS YES">BTTS YES</button>
+              <button type="button" class="chip-btn" data-chip="大">大</button>
+              <button type="button" class="chip-btn" data-chip="小">小</button>
+              <button type="button" class="chip-btn" data-chip="進球">進球</button>
+              <button type="button" class="chip-btn" data-chip="主勝">主勝</button>
+              <button type="button" class="chip-btn" data-chip="客勝">客勝</button>
+            </div>
+          </div>
+          <div class="builder-preview is-empty" id="builderPreview"></div>
+        </div>
+
+        <div class="field f-full" id="freeTextField" style="display:none">
+          <label for="fItem">項目（自由輸入）</label>
+          <textarea id="fItem" placeholder="例如：英超【曼城vs水晶宮：曼城】@1.7"></textarea>
+        </div>
+
+        <div class="form-grid">
+          <div class="field"><label for="fPrincipal">本金</label><input id="fPrincipal" type="number" step="0.01" min="0" required placeholder="0.00"/></div>
+          <div class="field"><label for="fOdds">賠率（選填）</label><input id="fOdds" type="number" step="0.001" min="0" placeholder="自動算支付額"/></div>
+          <div class="field"><label for="fPayout">支付額</label><input id="fPayout" type="number" step="0.0001" min="0" required placeholder="0.00"/></div>
+          <div class="field"><label for="fPnl">盈虧（自動）</label><input id="fPnl" type="number" step="0.0001" placeholder="自動"/></div>
+          <div class="field"><label for="fRoi">ROI（自動）</label><input id="fRoi" type="number" step="0.000001" placeholder="自動"/></div>
+        </div>
+      </form>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-primary" type="submit" form="recordForm" id="saveBtn"><i class="fa-solid fa-floppy-disk"></i> 儲存紀錄</button>
+      <button class="btn btn-ghost" type="button" id="clearBtn"><i class="fa-solid fa-rotate-left"></i> 清空</button>
+      <button class="btn btn-danger" type="button" id="deleteBtn" disabled><i class="fa-solid fa-trash"></i> 刪除此筆</button>
+    </div>
+  </aside>
+</div>
+<datalist id="leagueList"></datalist>
+<datalist id="matchList"></datalist>
+<datalist id="selectionList"></datalist>
+<datalist id="platformList"></datalist>
+<div class="toast-host" id="toastHost" aria-live="polite"></div>
+<button class="fab" id="fabAdd" aria-label="新增紀錄"><i class="fa-solid fa-plus"></i></button>
+</body>
+</html>
