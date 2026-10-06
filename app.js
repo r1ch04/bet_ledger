@@ -2,7 +2,7 @@
    BetLedger — 入口模組
    ================================================================ */
 import {
-  SUPABASE_URL, SUPABASE_ANON_KEY, BRAND,
+  SUPABASE_URL, SUPABASE_ANON_KEY,
   STORAGE_KEY, FILTER_KEY, PREF_KEY,
   DEFAULT_RECORDS, DEFAULT_PLATFORMS, TEMPLATES, COLUMNS,
 } from './config.js';
@@ -16,27 +16,6 @@ import { parseItem, buildItemString, getOdds, setOdds } from './itemFormat.js';
 
 /* 欄位顯示狀態（全部預設顯示） */
 state.cols = Object.fromEntries(COLUMNS.map(c => [c.key, true]));
-
-/* ================================================================
-   PWA manifest 動態注入
-   ================================================================ */
-(function () {
-  const manifest = {
-    name: BRAND.name,
-    short_name: BRAND.shortName,
-    description: BRAND.description,
-    start_url: './index.html',
-    display: 'standalone',
-    background_color: '#0f172a',
-    theme_color: '#0f172a',
-    icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2301696f'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-size='52' fill='white'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '512x512', type: 'image/svg+xml' }],
-  };
-  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-  const link = document.createElement('link');
-  link.rel = 'manifest';
-  link.href = URL.createObjectURL(blob);
-  document.head.appendChild(link);
-})();
 
 /* ================================================================
    主題切換（data-theme 已在 HTML head 中初始化防止閃爍）
@@ -540,52 +519,11 @@ async function syncToSupabase(action, record) {
 }
 
 /* ================================================================
-   PWA Service Worker 動態註冊（同源 JS/HTML 採 network-first 避免模組版本不一致）
+   PWA Service Worker（public/sw.js）
    ================================================================ */
-(function () {
-  if (!('serviceWorker' in navigator)) return;
-  const host = SUPABASE_URL.replace('https://', '').split('.')[0];
-  const origin = location.origin;
-  const swCode = `
-    const CACHE = 'betledger-v1';
-    const ORIGIN = '${origin}';
-    self.addEventListener('install', () => self.skipWaiting());
-    self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-    self.addEventListener('fetch', e => {
-      if (e.request.method !== 'GET') return;
-      const url = new URL(e.request.url);
-      if (url.hostname.includes('supabase')) {
-        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-        return;
-      }
-      const d = e.request.destination;
-      if (url.origin === ORIGIN && (d === 'script' || d === 'document' || d === 'style')) {
-        e.respondWith(
-          fetch(e.request).then(res => {
-            const copy = res.clone();
-            caches.open(CACHE).then(c => c.put(e.request, copy));
-            return res;
-          }).catch(() => caches.match(e.request))
-        );
-        return;
-      }
-      e.respondWith(
-        caches.open(CACHE).then(cache =>
-          cache.match(e.request).then(cached =>
-            cached || fetch(e.request).then(res => {
-              if (res.ok) cache.put(e.request, res.clone());
-              return res;
-            })
-          )
-        )
-      );
-    });
-  `;
-  try {
-    const swUrl = URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }));
-    navigator.serviceWorker.register(swUrl).catch(() => {});
-  } catch (e) {}
-})();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
 
 /* ================================================================
    離線偵測

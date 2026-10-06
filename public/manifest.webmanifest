@@ -1,0 +1,11 @@
+{
+  "name": "BetLedger · 預測帳本",
+  "short_name": "BetLedger",
+  "description": "通用投注與預測帳本",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

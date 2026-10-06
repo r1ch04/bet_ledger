@@ -6,12 +6,11 @@
 
 ## 部署方式
 
-### 前端：GitHub Pages（靜態網站）
+### 前端：GitHub Pages（GitHub Actions 自動建置）
 
-1. 將此 repo push 到 GitHub
-2. 在 repo 設定中啟用 GitHub Pages（Source: Deploy from branch, branch: main, folder: /）
-3. 確認根目錄存在 `.nojekyll`（本 repo 已內建），避免 Jekyll 忽略底線開頭的檔案
-4. 確保 `app.js` 中的 `SUPABASE_URL` 與 `SUPABASE_ANON_KEY` 已設定正確
+1. push 到 `main` 後，`.github/workflows/deploy.yml` 會自動 `npm ci && npm run build` 並發佈 `dist/`
+2. 首次需在 repo **Settings → Pages → Source** 選擇 **GitHub Actions**
+3. `config.js` 中的 `SUPABASE_URL` 與 `SUPABASE_ANON_KEY` 需已設定正確
 
 ### 後端 API（選用）：Supabase Edge Functions
 
@@ -55,7 +54,7 @@ Edge Functions 需要的環境變數（部署時由 Supabase 自動注入，本�
 
 ## 本機預覽
 
-無 build step，用任一靜態伺服器即可（`file://` 會因 ES modules 被 CORS 擋下）：
+開發伺服器（Vite）；`npm run build` 輸出至 `dist/`，`npm run preview` 預覽建置結果：
 
 ```bash
 npm run dev        # http://localhost:5500
@@ -63,11 +62,11 @@ npm run dev        # http://localhost:5500
 
 ## 前端架構
 
-- 純 HTML + CSS + Vanilla JS，以原生 ES modules 拆分（無 build step、無 bundler）
+- 純 HTML + CSS + Vanilla JS，以原生 ES modules 拆分（Vite 建置）
 - 模組：`config.js`（設定集中）/ `state.js` / `utils.js` / `calc.js`（統計）/ `charts.js`（圖表）/ `itemFormat.js`（項目字串解析組合）/ `app.js`（入口、DOM、Supabase）
 - Chart.js + Font Awesome（CDN）
 - Supabase JS SDK v2（client-side，直接操作資料庫）
-- PWA（manifest + Service Worker 動態註冊）
+- PWA（`public/manifest.webmanifest` + `public/sw.js`）
 
 ## 使用技巧
 

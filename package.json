@@ -4,10 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 5500",
-    "start": "python3 -m http.server 5500"
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/server": "^1.1.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.3"
   }
 }
